@@ -18,7 +18,7 @@ enum Register
     EDI,
     REGISTERS_COUNT
 };
-char *register_name[] = {
+char *registers_name[] = {
     "EAX", "ECX", "EDX", "EBX", "ESP", "EBP", "ESI", "EDI"};
 
 // エミュレータ構造体
@@ -31,7 +31,7 @@ typedef struct
     uint32_t eflags;
 
     // メモリ(バイト列)
-    uint32_t *memory;
+    uint8_t *memory;
 
     // プログラムカウンタ
     uint32_t eip;
@@ -54,7 +54,7 @@ static Emulator *create_emu(size_t size, uint32_t eip, uint32_t esp)
 }
 
 // エミュレータを破棄する
-void destroy_emu(Emulator *emu)
+static void destroy_emu(Emulator *emu)
 {
     free(emu->memory);
     free(emu);
@@ -67,7 +67,7 @@ static void dump_registers(Emulator *emu)
 
     for (i = 0; i < REGISTERS_COUNT; i++)
     {
-        printf("%s = %08x\n", register_name[i], emu->registers[i]);
+        printf("%s = %08x\n", registers_name[i], emu->registers[i]);
     }
 
     printf("EIP = %08x\n", emu->eip);
@@ -78,7 +78,7 @@ uint32_t get_code8(Emulator *emu, int index)
     return emu->memory[emu->eip + index];
 }
 
-uint32_t get_sign_code8(Emulator *emu, int index)
+int32_t get_sign_code8(Emulator *emu, int index)
 {
     return (int8_t)emu->memory[emu->eip + index];
 }
