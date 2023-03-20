@@ -97,12 +97,23 @@ uint32_t get_code32(Emulator *emu, int index)
     return ret;
 }
 
+int32_t get_sign_code32(Emulator *emu, int index)
+{
+    return (int32_t)get_code32(emu, index);
+}
+
 void mov_r32_imm32(Emulator *emu)
 {
     uint8_t reg = get_code8(emu, 0) - 0xB8;
     uint32_t value = get_code32(emu, 1);
     emu->registers[reg] = value;
     emu->eip += 5;
+}
+
+void near_jump(Emulator *emu)
+{
+    int32_t diff = get_sign_code32(emu, 1);
+    emu->eip += (diff + 5);
 }
 
 void short_jump(Emulator *emu)
@@ -121,6 +132,7 @@ void init_instructions(void)
     {
         instructions[0xB8 + i] = mov_r32_imm32;
     }
+    instructions[0xE9] = near_jump;
     instructions[0xEB] = short_jump;
 }
 
@@ -136,7 +148,7 @@ int main(int argc, char *argv[])
     }
 
     // EIPが0、ESPが0x7c00の状態のエミュレータを作る
-    emu = create_emu(MEMORY_SIZE, 0x0000, 0x7c00);
+    emu = create_emu(MEMORY_SIZE, 0x7c00, 0x7c00);
 
     binary = fopen(argv[1], "rb");
     if (binary == NULL)
@@ -146,7 +158,7 @@ int main(int argc, char *argv[])
     }
 
     // 機械語ファイルを読み込む(最大512バイト)
-    fread(emu->memory, 1, 0x200, binary);
+    fread(emu->memory + 0x7c00, 1, 0x200, binary);
     fclose(binary);
 
     init_instructions();
