@@ -3,182 +3,104 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "emulator.h"
+#include "emulator_function.h"
+#include "instruction.h"
+
 // メモリは1MB
 #define MEMORY_SIZE (1024 * 1024)
 
-enum Register
-{
-    EAX,
-    ECX,
-    EDX,
-    EBX,
-    ESP,
-    EBP,
-    ESI,
-    EDI,
-    REGISTERS_COUNT
-};
-char *registers_name[] = {
-    "EAX", "ECX", "EDX", "EBX", "ESP", "EBP", "ESI", "EDI"};
+char* registers_name[] = {"EAX", "ECX", "EDX", "EBX",
+                          "ESP", "EBP", "ESI", "EDI"};
 
-// エミュレータ構造体
-typedef struct
-{
-    // 汎用レジスタ
-    uint32_t registers[REGISTERS_COUNT];
+// Emulatorのメモリにバイナリファイルの内容を512バイトコピーする
+static void read_binary(Emulator* emu, const char* filename) {
+    FILE* binary;
 
-    // EFLAGSレジスタ
-    uint32_t eflags;
+    binary = fopen(filename, "rb");
 
-    // メモリ(バイト列)
-    uint8_t *memory;
+    if (binary == NULL) {
+        printf("%s ファイルを開けません\n", filename);
+        exit(1);
+    }
 
-    // プログラムカウンタ
-    uint32_t eip;
-} Emulator;
-
-// エミュレータを作成する
-static Emulator *create_emu(size_t size, uint32_t eip, uint32_t esp)
-{
-    Emulator *emu = malloc(sizeof(Emulator));
-    emu->memory = malloc(size);
-
-    // 汎用レジスタの初期値をすべて0にする
-    memset(emu->registers, 0, sizeof(emu->registers));
-
-    // レジスタの初期値を指定されたものにする
-    emu->eip = eip;
-    emu->registers[ESP] = esp;
-
-    return emu;
-}
-
-// エミュレータを破棄する
-static void destroy_emu(Emulator *emu)
-{
-    free(emu->memory);
-    free(emu);
+    // Emulatorのメモリにバイナリファイルの内容を512バイトコピーする
+    fread(emu->memory + 0x7c00, 1, 0x200, binary);
+    fclose(binary);
 }
 
 // 汎用レジスタとプログラムカウンタの値を標準出力に出力する
-static void dump_registers(Emulator *emu)
-{
+static void dump_registers(Emulator* emu) {
     int i;
 
-    for (i = 0; i < REGISTERS_COUNT; i++)
-    {
+    for (i = 0; i < REGISTERS_COUNT; i++) {
         printf("%s = %08x\n", registers_name[i], emu->registers[i]);
     }
 
     printf("EIP = %08x\n", emu->eip);
 }
 
-uint32_t get_code8(Emulator *emu, int index)
-{
-    return emu->memory[emu->eip + index];
+// 与えられた引数をもとにEmulatorを作成する
+static Emulator* create_emu(size_t size, uint32_t eip, uint32_t esp) {
+
+    // Emulatorの作成
+    Emulator* emu = malloc(sizeof(Emulator));
+
+    // Emulator内で使うメモリの確保
+    emu->memory = malloc(size);
+
+    // 汎用レジスタの初期値をすべて0にする
+    memset(emu->registers, 0, sizeof(emu->registers));
+
+    // プログラムカウンタの初期値
+    emu->eip = eip;
+
+    // スタックポインタの初期値
+    emu->registers[ESP] = esp;
+
+    return emu;
 }
 
-int32_t get_sign_code8(Emulator *emu, int index)
-{
-    return (int8_t)emu->memory[emu->eip + index];
+// エミュレータを破棄する
+static void destroy_emu(Emulator* emu) {
+    free(emu->memory);
+    free(emu);
 }
 
-uint32_t get_code32(Emulator *emu, int index)
-{
-    int i;
-    uint32_t ret = 0;
+int main(int argc, char* argv[]) {
+    Emulator* emu;
 
-    // リトルエンディアンでメモリの値を取得する
-    for (i = 0; i < 4; i++)
-    {
-        ret |= get_code8(emu, index + i) << (i * 8);
-    }
-
-    return ret;
-}
-
-int32_t get_sign_code32(Emulator *emu, int index)
-{
-    return (int32_t)get_code32(emu, index);
-}
-
-void mov_r32_imm32(Emulator *emu)
-{
-    uint8_t reg = get_code8(emu, 0) - 0xB8;
-    uint32_t value = get_code32(emu, 1);
-    emu->registers[reg] = value;
-    emu->eip += 5;
-}
-
-void near_jump(Emulator *emu)
-{
-    int32_t diff = get_sign_code32(emu, 1);
-    emu->eip += (diff + 5);
-}
-
-void short_jump(Emulator *emu)
-{
-    int8_t diff = get_sign_code8(emu, 1);
-    emu->eip += (diff + 2);
-}
-
-typedef void instruction_func_t(Emulator *);
-instruction_func_t *instructions[256];
-void init_instructions(void)
-{
-    int i;
-    memset(instructions, 0, sizeof(instructions));
-    for (i = 0; i < 8; i++)
-    {
-        instructions[0xB8 + i] = mov_r32_imm32;
-    }
-    instructions[0xE9] = near_jump;
-    instructions[0xEB] = short_jump;
-}
-
-int main(int argc, char *argv[])
-{
-    FILE *binary;
-    Emulator *emu;
-
-    if (argc != 2)
-    {
+    // 引数が1つでなければエラーメッセージ
+    if (argc != 2) {
         printf("usage: messiah filename\n");
         return 1;
     }
 
-    // EIPが0、ESPが0x7c00の状態のエミュレータを作る
-    emu = create_emu(MEMORY_SIZE, 0x7c00, 0x7c00);
-
-    binary = fopen(argv[1], "rb");
-    if (binary == NULL)
-    {
-        printf("%sファイルが開けません\n", argv[1]);
-        return 1;
-    }
-
-    // 機械語ファイルを読み込む(最大512バイト)
-    fread(emu->memory + 0x7c00, 1, 0x200, binary);
-    fclose(binary);
-
+    // 命令セットの初期化を行う
     init_instructions();
 
-    while (emu->eip < MEMORY_SIZE)
-    {
+    // メモリ1MBでEIP、ESPが0x7c00の状態のEmulatorを作る
+    emu = create_emu(MEMORY_SIZE, 0x7c00, 0x7c00);
+
+    // 引数で与えられたバイナリを読み込む
+    read_binary(emu, argv[1]);
+
+    while (emu->eip < MEMORY_SIZE) {
         uint8_t code = get_code8(emu, 0);
         // 現在のプログラムカウンタと実行されるバイナリを出力する
         printf("EIP = %X, Code = %02X\n", emu->eip, code);
-        if (instructions[code] == NULL)
-        {
+
+        if (instructions[code] == NULL) {
+            // 実装されていない命令が来たらEmulatorを終了する
             printf("\n\nNot Implemented: %x\n", code);
             break;
         }
 
         // 命令の実行
         instructions[code](emu);
-        // EIPが0ならエミュレータを終了
-        if (emu->eip == 0x00)
-        {
+
+        // EIPが0になったらプログラム終了
+        if (emu->eip == 0x00) {
             printf("\n\nend of program.\n\n");
             break;
         }

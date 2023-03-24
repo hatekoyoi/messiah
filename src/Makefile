@@ -1,8 +1,9 @@
 TARGET = messiah
-PROGRAM = helloworld.bin
-OBJS = main.o
+PROGRAM = modrm-test.bin
+OBJS = main.o emulator_function.o instruction.o modrm.o
 
 CC = gcc
+ASM = nasm
 CFLAGS += -Wall -Wextra
 
 .PHONY: run
@@ -10,7 +11,7 @@ run : $(TARGET) $(PROGRAM)
 	./$(TARGET) $(PROGRAM)
 
 %.bin : %.asm
-	nasm -f bin -o $@ $<
+	$(ASM) -f bin -o $@ $<
 
 $(TARGET) : $(OBJS)
 	$(CC) -o $@ $(OBJS)
