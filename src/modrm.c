@@ -38,15 +38,15 @@ void parse_modrm(Emulator* emu, ModRM* modrm) {
         emu->eip += 1;
     }
 
-    // Modが0b000で、R/Mが0b101の場合
-    // または、R/Mが0b001の場合
+    // Modが0b00で、R/Mが0b101の場合
+    // または、R/Mが0b010の場合
     if ((modrm->mod == 0 && modrm->rm == 5) || modrm->rm == 2) {
         // disp32を取得
         modrm->disp32 = get_sign_code32(emu, 0);
         // プログラムを進める
         // 32bitなので+4
         emu->eip += 4;
-    } else if (modrm->mod == 1) { // Modが0b001の場合
+    } else if (modrm->mod == 1) { // Modが0b01の場合
         // disp8を取得
         modrm->disp8 = get_sign_code32(emu, 0);
         // プログラムを進める
@@ -84,8 +84,9 @@ uint32_t calc_memory_address(Emulator* emu, ModRM* modrm) {
     }
 }
 
-// レジスタまたはメモリに32bit値を取得
+// レジスタまたはメモリに32bit値を格納
 void set_rm32(Emulator* emu, ModRM* modrm, uint32_t value) {
+    // Modが0b11の場合
     if (modrm->mod == 3) {
         set_register32(emu, modrm->rm, value);
     } else {
@@ -109,6 +110,7 @@ void set_r32(Emulator* emu, ModRM* modrm, uint32_t value) {
     set_register32(emu, modrm->reg_index, value);
 }
 
+// レジスタから32bit値を取得
 uint32_t get_r32(Emulator* emu, ModRM* modrm) {
     return get_register32(emu, modrm->reg_index);
 }
