@@ -55,6 +55,7 @@ static void code_83(Emulator* emu) {
     }
 }
 
+// 32ビットのメモリまたはレジスタに、32ビットのレジスタの値を格納
 static void mov_rm32_r32(Emulator* emu) {
     emu->eip += 1;
     ModRM modrm;
@@ -71,6 +72,7 @@ static void mov_r32_rm32(Emulator* emu) {
     set_r32(emu, &modrm, rm32);
 }
 
+// 32ビットのレジスタに、即値を格納
 static void mov_r32_imm32(Emulator* emu) {
     uint8_t reg = get_code8(emu, 0) - 0xB8;
     uint32_t value = get_code32(emu, 1);
