@@ -64,6 +64,7 @@ static void mov_rm32_r32(Emulator* emu) {
     set_rm32(emu, &modrm, r32);
 }
 
+// 32ビットレジスタにメモリまたはレジスタの値を格納
 static void mov_r32_rm32(Emulator* emu) {
     emu->eip += 1;
     ModRM modrm;

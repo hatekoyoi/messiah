@@ -54,6 +54,7 @@ void parse_modrm(Emulator* emu, ModRM* modrm) {
     }
 }
 
+// メモリアドレスの計算
 uint32_t calc_memory_address(Emulator* emu, ModRM* modrm) {
     if (modrm->mod == 0) {
         if (modrm->rm == 4) {
