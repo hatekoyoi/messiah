@@ -40,12 +40,22 @@ static void add_rm32_r32(Emulator* emu) {
     set_rm32(emu, &modrm, rm32 + r32);
 }
 
+static void add_rm32_imm8(Emulator* emu, ModRM* modrm) {
+    uint32_t rm32 = get_rm32(emu, modrm);
+    uint32_t imm8 = (int32_t)get_sign_code8(emu, 0);
+    emu->eip += 1;
+    set_rm32(emu, modrm, rm32 + imm8);
+}
+
 static void code_83(Emulator* emu) {
     emu->eip += 1;
     ModRM modrm;
     parse_modrm(emu, &modrm);
 
     switch (modrm.opecode) {
+    case 0:
+        add_rm32_imm8(emu, &modrm);
+        break;
     case 5:
         sub_rm32_imm8(emu, &modrm);
         break;
@@ -94,6 +104,18 @@ static void push_r32(Emulator* emu) {
     uint8_t reg = get_code8(emu, 0) - 0x50;
     push32(emu, get_register32(emu, reg));
     emu->eip += 1;
+}
+
+static void push_imm32(Emulator* emu) {
+    uint32_t value = get_code32(emu, 1);
+    push32(emu, value);
+    emu->eip += 5;
+}
+
+static void push_imm8(Emulator* emu) {
+    uint8_t value = get_code8(emu, 1);
+    push32(emu, value);
+    emu->eip += 2;
 }
 
 static void pop_r32(Emulator* emu) {
@@ -154,6 +176,9 @@ void init_instructions(void) {
     for (i = 0; i < 8; i++) {
         instructions[0x58 + i] = pop_r32;
     }
+
+    instructions[0x68] = push_imm32;
+    instructions[0x6a] = push_imm8;
 
     instructions[0x83] = code_83;
     instructions[0x89] = mov_rm32_r32;

@@ -101,7 +101,7 @@ int main(int argc, char* argv[]) {
 
         // EIPが0になったらプログラム終了
         if (emu->eip == 0x00) {
-            printf("\n\nend of program.\n\n");
+            printf("\nend of program.\n\n");
             break;
         }
     }

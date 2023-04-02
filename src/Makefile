@@ -1,6 +1,7 @@
 TARGET = messiah
-PROGRAM = leave-test.bin
+PROGRAM = test.bin
 OBJS = main.o emulator_function.o instruction.o modrm.o
+TEST_OBJS = test.o crt0.o
 
 CC = gcc
 LD = ld
@@ -11,10 +12,10 @@ CFLAGS += -Wall -Wextra
 run : $(TARGET) $(PROGRAM)
 	./$(TARGET) $(PROGRAM)
 
-$(PROGRAM) : crt0.o leave-test.o
+$(PROGRAM) : crt0.o test.o
 	$(LD) -m elf_i386 --entry=start --oformat=binary -Ttext 0x7c00 -o $@ $^
 
-leave-test.o : leave-test.c
+test.o : test.c
 	$(CC) -O0 -march=i386 -m32 -nostdlib -fno-asynchronous-unwind-tables -g -fno-stack-protector -fno-pie -c -o $@ $<
 
 crt0.o : crt0.asm
@@ -30,4 +31,4 @@ $(TARGET) : $(OBJS)
 	$(CC) -o $@ $(OBJS)
 
 clean:
-	rm -f $(TARGET) $(OBJS) $(PROGRAM)
+	rm -f $(TARGET) $(OBJS) $(PROGRAM) $(TEST_OBJS)
