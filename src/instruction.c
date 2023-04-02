@@ -110,6 +110,13 @@ static void call_rel32(Emulator* emu) {
 
 static void ret(Emulator* emu) { emu->eip = pop32(emu); }
 
+static void leave(Emulator* emu) {
+    uint32_t ebp = get_register32(emu, EBP);
+    set_register32(emu, ESP, ebp);
+    set_register32(emu, EBP, pop32(emu));
+    emu->eip += 1;
+}
+
 void near_jump(Emulator* emu) {
     int32_t diff = get_sign_code32(emu, 1);
     emu->eip += (diff + 5);
@@ -158,6 +165,7 @@ void init_instructions(void) {
 
     instructions[0xC3] = ret;
     instructions[0xC7] = mov_rm32_imm32;
+    instructions[0xC9] = leave;
 
     instructions[0xE8] = call_rel32;
     instructions[0xE9] = near_jump;
