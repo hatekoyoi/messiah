@@ -90,6 +90,26 @@ static void mov_rm32_imm32(Emulator* emu) {
     set_rm32(emu, &modrm, value);
 }
 
+static void push_r32(Emulator* emu) {
+    uint8_t reg = get_code8(emu, 0) - 0x50;
+    push32(emu, get_register32(emu, reg));
+    emu->eip += 1;
+}
+
+static void pop_r32(Emulator* emu) {
+    uint8_t reg = get_code8(emu, 0) - 0x58;
+    set_register32(emu, reg, pop32(emu));
+    emu->eip += 1;
+}
+
+static void call_rel32(Emulator* emu) {
+    int32_t diff = get_sign_code32(emu, 1);
+    push32(emu, emu->eip + 5);
+    emu->eip += (diff + 5);
+}
+
+static void ret(Emulator* emu) { emu->eip = pop32(emu); }
+
 void near_jump(Emulator* emu) {
     int32_t diff = get_sign_code32(emu, 1);
     emu->eip += (diff + 5);
@@ -119,13 +139,27 @@ void init_instructions(void) {
     int i;
     memset(instructions, 0, sizeof(instructions));
     instructions[0x01] = add_rm32_r32;
+
+    for (i = 0; i < 8; i++) {
+        instructions[0x50 + i] = push_r32;
+    }
+
+    for (i = 0; i < 8; i++) {
+        instructions[0x58 + i] = pop_r32;
+    }
+
     instructions[0x83] = code_83;
     instructions[0x89] = mov_rm32_r32;
     instructions[0x8B] = mov_r32_rm32;
+
     for (i = 0; i < 8; i++) {
         instructions[0xB8 + i] = mov_r32_imm32;
     }
+
+    instructions[0xC3] = ret;
     instructions[0xC7] = mov_rm32_imm32;
+
+    instructions[0xE8] = call_rel32;
     instructions[0xE9] = near_jump;
     instructions[0xEB] = short_jump;
     instructions[0xFF] = code_ff;

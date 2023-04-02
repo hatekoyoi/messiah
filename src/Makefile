@@ -1,5 +1,5 @@
 TARGET = messiah
-PROGRAM = modrm-test.bin
+PROGRAM = call-test.bin
 OBJS = main.o emulator_function.o instruction.o modrm.o
 
 CC = gcc
