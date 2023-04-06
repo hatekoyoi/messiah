@@ -211,7 +211,9 @@ static void jle(Emulator* emu) {
 }
 
 static void jg(Emulator* emu) {
-    int diff = (is_zero(emu) && is_sign(emu)) ? get_sign_code8(emu, 1) : 0;
+    int diff = (is_zero(emu) && (is_sign(emu) && is_overflow(emu)))
+                   ? get_sign_code8(emu, 1)
+                   : 0;
     emu->eip += (diff + 1);
 }
 
