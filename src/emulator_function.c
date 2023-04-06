@@ -28,9 +28,29 @@ int32_t get_sign_code32(Emulator* emu, int index) {
     return (int32_t)get_code32(emu, index);
 }
 
+// index番目の8bit汎用レジスタの値を取得する
+uint32_t get_register8(Emulator* emu, int index) {
+    if (index < 4) {
+        return emu->registers[index] & 0xff;
+    } else {
+        return (emu->registers[index - 4] >> 8) & 0xff;
+    }
+}
+
 // index番目の32bit汎用レジスタの値を取得する
 uint32_t get_register32(Emulator* emu, int index) {
     return emu->registers[index];
+}
+
+// index番目の8bit汎用レジスタの値を設定する
+void set_register8(Emulator* emu, int index, uint32_t value) {
+    if (index < 4) {
+        uint32_t r = emu->registers[index] & 0xffffff00;
+        emu->registers[index] = r | (uint32_t)value;
+    } else {
+        uint32_t r = emu->registers[index - 4] & 0xffff00ff;
+        emu->registers[index - 4] = r | ((int32_t)value << 8);
+    }
 }
 
 // index番目の32bit汎用レジスタの値を設定する

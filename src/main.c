@@ -34,7 +34,7 @@ static void dump_registers(Emulator* emu) {
     int i;
 
     for (i = 0; i < REGISTERS_COUNT; i++) {
-        printf("%s = %08x\n", registers_name[i], emu->registers[i]);
+        printf("%s = %08x\n", registers_name[i], get_register32(emu, i));
     }
 
     printf("EIP = %08x\n", emu->eip);
@@ -67,8 +67,33 @@ static void destroy_emu(Emulator* emu) {
     free(emu);
 }
 
+int opt_remove_at(int argc, char* argv[], int index) {
+    if (index < 0 || argc <= index) {
+        return argc;
+    } else {
+        int i = index;
+        for (; i < argc - 1; i++) {
+            argv[i] = argv[i + 1];
+        }
+        argv[i] = NULL;
+        return argc - 1;
+    }
+}
+
 int main(int argc, char* argv[]) {
     Emulator* emu;
+    int i;
+    int quiet = 0;
+
+    i = 1;
+    while (i < argc) {
+        if (strcmp(argv[i], "-q") == 0) {
+            quiet = 1;
+            argc = opt_remove_at(argc, argv, i);
+        } else {
+            i++;
+        }
+    }
 
     // 引数が1つでなければエラーメッセージ
     if (argc != 2) {
@@ -88,7 +113,9 @@ int main(int argc, char* argv[]) {
     while (emu->eip < MEMORY_SIZE) {
         uint8_t code = get_code8(emu, 0);
         // 現在のプログラムカウンタと実行されるバイナリを出力する
-        printf("EIP = %X, Code = %02X\n", emu->eip, code);
+        if (!quiet) {
+            printf("EIP = %X, Code = %02X\n", emu->eip, code);
+        }
 
         if (instructions[code] == NULL) {
             // 実装されていない命令が来たらEmulatorを終了する

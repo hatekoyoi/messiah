@@ -1,24 +1,21 @@
 TARGET = messiah
-PROGRAM = test.bin
-OBJS = main.o emulator_function.o instruction.o modrm.o
-TEST_OBJS = test.o crt0.o
+PROGRAM = select.bin
+OBJS = main.o emulator_function.o instruction.o modrm.o io.o
+TEST_OBJS = select.o
 
 CC = gcc
 LD = ld
 ASM = nasm
 CFLAGS += -Wall -Wextra
 
-.PHONY: run
-run : $(TARGET) $(PROGRAM)
+.PHONY: debug run
+debug : $(TARGET) $(PROGRAM)
 	./$(TARGET) $(PROGRAM)
 
-$(PROGRAM) : crt0.o test.o
-	$(LD) -m elf_i386 --entry=start --oformat=binary -Ttext 0x7c00 -o $@ $^
+run : $(TARGET) $(PROGRAM)
+	./$(TARGET) -q $(PROGRAM)
 
-test.o : test.c
-	$(CC) -O0 -march=i386 -m32 -nostdlib -fno-asynchronous-unwind-tables -g -fno-stack-protector -fno-pie -c -o $@ $<
-
-crt0.o : crt0.asm
+select.o : select.asm
 	$(ASM) -f elf $<
 
 %.bin : %.asm
